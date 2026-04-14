@@ -1,0 +1,33 @@
+{
+  "name": "pichaprint-website",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@types/backbone": "^1.4.23",
+    "@types/three": "^0.183.1",
+    "@types/underscore": "^1.13.0",
+    "backbone": "^1.6.1",
+    "jointjs": "^3.7.7",
+    "next": "16.2.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "three": "^0.183.2",
+    "underscore": "^1.13.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
