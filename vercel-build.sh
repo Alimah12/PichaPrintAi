@@ -1,0 +1,27 @@
+#!/bin/sh
+set -eux
+
+# If subfolder exists, cd into it
+if [ -d pichaprint-website ]; then
+  cd pichaprint-website
+fi
+
+echo "=== diagnostics start ==="
+echo "node: $(node -v 2>/dev/null || echo 'node not found')"
+echo "pnpm: $(command -v pnpm >/dev/null 2>&1 && pnpm -v || echo 'pnpm not found')"
+echo "npm: $(command -v npm >/dev/null 2>&1 && npm -v || echo 'npm not found')"
+echo "pwd: $(pwd)"
+
+echo "=== installing dependencies ==="
+if command -v pnpm >/dev/null 2>&1 && [ -f pnpm-lock.yaml ]; then
+  pnpm install --reporter=append-only
+  pnpm run build
+elif [ -f package-lock.json ]; then
+  npm ci
+  npm run build
+else
+  npm install
+  npm run build
+fi
+
+echo "=== diagnostics end ==="
