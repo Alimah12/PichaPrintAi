@@ -1,5 +1,6 @@
 {
-  "buildCommand": "cd pichaprint-website && npm run build",
-  "outputDirectory": "pichaprint-website/out",
+  "rootDirectory": "pichaprint-website",
+  "buildCommand": "pnpm run build",
+  "outputDirectory": ".next",
   "framework": "nextjs"
 }
