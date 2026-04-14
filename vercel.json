@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd pichaprint-website && (if command -v pnpm >/dev/null 2>&1 && [ -f pnpm-lock.yaml ]; then pnpm install && pnpm run build; elif [ -f package-lock.json ]; then npm ci && npm run build; else npm install && npm run build; fi)",
+  "buildCommand": "cd pichaprint-website && echo \"=== diagnostics start ===\" && echo \"node: $(node -v 2>/dev/null || echo 'node not found')\" && echo \"pnpm: $(command -v pnpm >/dev/null 2>&1 && pnpm -v || echo 'pnpm not found')\" && echo \"=== installing dependencies ===\" && (if command -v pnpm >/dev/null 2>&1 && [ -f pnpm-lock.yaml ]; then pnpm install --reporter=append-only && pnpm run build; elif [ -f package-lock.json ]; then npm ci && npm run build; else npm install && npm run build; fi) && echo \"=== diagnostics end ===\"",
   "outputDirectory": "pichaprint-website/.next",
   "framework": "nextjs"
 }
