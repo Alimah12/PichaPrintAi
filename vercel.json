@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd pichaprint-website && pnpm run build",
+  "buildCommand": "cd pichaprint-website && (if command -v pnpm >/dev/null 2>&1 && [ -f pnpm-lock.yaml ]; then pnpm install && pnpm run build; elif [ -f package-lock.json ]; then npm ci && npm run build; else npm install && npm run build; fi)",
   "outputDirectory": "pichaprint-website/.next",
   "framework": "nextjs"
 }
