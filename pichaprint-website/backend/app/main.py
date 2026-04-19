@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -116,3 +116,34 @@ def get_design(design_id: int, current_user: models.User = Depends(get_current_u
     if not item:
         raise HTTPException(status_code=404, detail='Design not found')
     return item
+
+
+@app.get('/admin/analytics')
+def admin_analytics(x_admin_key: str | None = Header(None), db: Session = Depends(get_db)):
+    # Simple admin access: require header X-ADMIN-KEY to match SECRET_KEY
+    if not x_admin_key or x_admin_key != auth.SECRET_KEY:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Forbidden')
+
+    users = db.query(models.User).all()
+    out = []
+    for u in users:
+        ds = db.query(models.Design).filter(models.Design.user_id == u.id).order_by(models.Design.id.desc()).all()
+        out.append({
+            'id': u.id,
+            'username': u.username,
+            'email': u.email,
+            'first_name': u.first_name,
+            'last_name': u.last_name,
+            'country': u.country,
+            'phone': u.phone,
+            'designs': [
+                {
+                    'id': d.id,
+                    'input_text': d.input_text,
+                    'timestamp': d.timestamp,
+                    'output_json': d.output_json
+                } for d in ds
+            ]
+        })
+
+    return out

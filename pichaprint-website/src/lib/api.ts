@@ -106,3 +106,12 @@ export async function listDesigns(token: string) {
   if (!res.ok) throw new Error('Failed to list designs');
   return res.json();
 }
+
+export async function adminAnalytics(adminKey: string) {
+  const res = await fetch(`${API_URL}/admin/analytics`, { headers: { 'X-ADMIN-KEY': adminKey } });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || 'Failed to fetch analytics');
+  }
+  return res.json();
+}

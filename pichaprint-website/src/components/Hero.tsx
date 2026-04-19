@@ -1,10 +1,13 @@
 import React from 'react';
+import { useRouter } from 'next/navigation';
+import { getToken } from '../lib/auth';
 
 interface HeroProps {
   onGetStarted: () => void;
 }
 
 const Hero: React.FC<HeroProps> = ({ onGetStarted }) => {
+  const router = useRouter();
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
       {/* Layer 1: Slow spinning background */}
@@ -96,7 +99,11 @@ const Hero: React.FC<HeroProps> = ({ onGetStarted }) => {
         {/* CTA Buttons */}
         <div className="mt-12 flex flex-col sm:flex-row justify-center gap-4">
           <button
-            onClick={onGetStarted}
+            onClick={() => {
+              const token = getToken();
+              if (token) onGetStarted();
+              else router.push('/login');
+            }}
             className="rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 px-8 py-3.5 text-sm font-medium text-white shadow-lg shadow-emerald-500/25 transition-all hover:scale-105 hover:shadow-xl animate-float"
           >
              Get Started

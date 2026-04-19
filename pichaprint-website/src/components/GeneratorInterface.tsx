@@ -15,7 +15,7 @@ import { HistoryItem, GenerationOutput } from '../types';
 
 type TabType = 'scad' | 'circuit' | 'firmware' | 'bom';
 
-export function GeneratorInterface({ initialShowGenerator = false }: { initialShowGenerator?: boolean }) {
+export function GeneratorInterface({ initialShowGenerator = false, externalDesign }: { initialShowGenerator?: boolean, externalDesign?: any }) {
   const [showGenerator, setShowGenerator] = useState(initialShowGenerator);
   const [loading, setLoading] = useState(false);
   const [currentOutput, setCurrentOutput] = useState<GenerationOutput | null>(null);
@@ -37,6 +37,27 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
         setError('Failed to initialize storage');
       });
   }, []);
+
+  // If parent passes an external design (from backend list), load it into the interface
+  useEffect(() => {
+    if (!externalDesign) return;
+    try {
+      let parsed: any = externalDesign;
+      // backend items may carry output_json as string
+      if (externalDesign.output_json) {
+        parsed = JSON.parse(externalDesign.output_json);
+      } else if (externalDesign.output) {
+        parsed = externalDesign.output;
+      }
+
+      setCurrentOutput(parsed);
+      setShowGenerator(true);
+      setActiveTab('scad');
+    } catch (err) {
+      console.error('Failed to load external design', err);
+      setError('Failed to load design');
+    }
+  }, [externalDesign]);
   
   const loadHistory = async () => {
     try {

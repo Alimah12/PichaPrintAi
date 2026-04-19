@@ -1,6 +1,7 @@
-'use client';
+ 'use client';
 
 import { useRouter } from 'next/navigation';
+import { getToken } from '../../src/lib/auth';
 
 export default function Hero() {
   const router = useRouter();
@@ -97,7 +98,11 @@ export default function Hero() {
         <div className="mt-12 flex flex-col sm:flex-row justify-center gap-4">
           <button
             type="button"
-            onClick={() => router.push('/demo')}
+            onClick={() => {
+              const token = getToken();
+              if (token) router.push('/demo');
+              else router.push('/login');
+            }}
             className="rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 px-8 py-3.5 text-sm font-medium text-white shadow-lg shadow-emerald-500/25 transition-all hover:scale-105 hover:shadow-xl animate-float"
           >
             Try the Demo
