@@ -1,4 +1,6 @@
 import { HistoryItem, GenerationOutput } from '../types';
+import { getToken } from './auth';
+import { listDesigns, saveDesignToBackend } from './api';
 
 class StorageService {
   private db: IDBDatabase | null = null;
@@ -30,8 +32,25 @@ class StorageService {
   }
 
   async addDesign(input: string, output: GenerationOutput): Promise<HistoryItem> {
+    const token = getToken();
+    if (token) {
+      // Persist to backend
+      const payload = {
+        input_text: input,
+        output_json: JSON.stringify(output)
+      };
+      const saved = await saveDesignToBackend(token, payload.input_text, payload.output_json);
+      const entry: HistoryItem = {
+        id: saved.id,
+        timestamp: saved.timestamp,
+        input,
+        output,
+        deviceName: output.device_name || 'unnamed'
+      };
+      return entry;
+    }
+
     await this.init();
-    
     const entry: HistoryItem = {
       id: Date.now(),
       timestamp: new Date().toISOString(),
@@ -51,6 +70,19 @@ class StorageService {
   }
 
   async getHistory(): Promise<HistoryItem[]> {
+    const token = getToken();
+    if (token) {
+      const list = await listDesigns(token);
+      // Convert backend items to HistoryItem shape
+      return list.map((it: any) => ({
+        id: it.id,
+        timestamp: it.timestamp,
+        input: it.input_text,
+        output: JSON.parse(it.output_json),
+        deviceName: JSON.parse(it.output_json).device_name || 'unnamed'
+      }));
+    }
+
     await this.init();
     
     return new Promise((resolve, reject) => {
@@ -74,8 +106,22 @@ class StorageService {
   }
 
   async loadDesign(id: number): Promise<HistoryItem | null> {
+    const token = getToken();
+    if (token) {
+      const list = await listDesigns(token);
+      const item = list.find((it: any) => it.id === id);
+      if (!item) return null;
+      return {
+        id: item.id,
+        timestamp: item.timestamp,
+        input: item.input_text,
+        output: JSON.parse(item.output_json),
+        deviceName: JSON.parse(item.output_json).device_name || 'unnamed'
+      };
+    }
+
     await this.init();
-    
+
     return new Promise((resolve, reject) => {
       const tx = this.db!.transaction([this.STORE_NAME], 'readonly');
       const store = tx.objectStore(this.STORE_NAME);

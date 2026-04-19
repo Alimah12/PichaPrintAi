@@ -1,9 +1,10 @@
 import { HistoryItem, GenerationOutput } from '../types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://goodn6138--ai-hardware-service-fastapi-app.modal.run';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const GENERATOR_URL = process.env.NEXT_PUBLIC_GENERATOR_URL || 'https://goodn6138--ai-hardware-service-fastapi-app.modal.run';
 
 export async function generateHardware(prompt: string): Promise<GenerationOutput> {
-  const response = await fetch(`${API_URL}/api/generate`, {
+  const response = await fetch(`${GENERATOR_URL}/api/generate`, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
@@ -18,7 +19,7 @@ export async function generateHardware(prompt: string): Promise<GenerationOutput
   
   const data = await response.json();
   
-  const baseUrl = API_URL;
+  const baseUrl = GENERATOR_URL;
   const fullUrl = (url: string) => url.startsWith('http') ? url : `${baseUrl}${url}`;
   
   // Fetch all files
@@ -50,4 +51,47 @@ export async function generateHardware(prompt: string): Promise<GenerationOutput
     bomContent: bomText,
     original_prompt: prompt
   };
+}
+
+// --- Auth + backend helpers ---
+export async function signup(email: string, password: string) {
+  const res = await fetch(`${API_URL}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  if (!res.ok) throw new Error('Signup failed');
+  return res.json();
+}
+
+export async function login(email: string, password: string) {
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  if (!res.ok) throw new Error('Login failed');
+  return res.json();
+}
+
+export async function me(token: string) {
+  const res = await fetch(`${API_URL}/me`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Auth failed');
+  return res.json();
+}
+
+export async function saveDesignToBackend(token: string, input_text: string, output_json: string) {
+  const res = await fetch(`${API_URL}/designs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ input_text, output_json })
+  });
+  if (!res.ok) throw new Error('Save design failed');
+  return res.json();
+}
+
+export async function listDesigns(token: string) {
+  const res = await fetch(`${API_URL}/designs`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Failed to list designs');
+  return res.json();
 }
