@@ -1,9 +1,5 @@
 // HistoryDrawer.tsx - Update the props and add user section
-interface HistoryItem {
-  id: string;
-  prompt: string;
-  timestamp: string;
-}
+import { HistoryItem } from '../types';
 
 interface HistoryDrawerProps {
   isOpen: boolean;
@@ -121,12 +117,12 @@ export default function HistoryDrawer({
             ) : (
               <ul className="space-y-2">
                 {history.map((item) => (
-                  <li key={item.id}>
+                  <li key={String(item.id)}>
                     <button
                       onClick={() => onLoadItem(item)}
                       className="w-full text-left p-2 hover:bg-gray-50 rounded-lg transition-colors"
                     >
-                      <div className="text-sm text-gray-800 truncate">{item.prompt.slice(0, 60)}</div>
+                      <div className="text-sm text-gray-800 truncate">{(item.input || item.output?.original_prompt || '').slice(0, 60)}</div>
                       <div className="text-xs text-gray-400 mt-1">
                         {new Date(item.timestamp).toLocaleString()}
                       </div>

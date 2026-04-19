@@ -87,12 +87,14 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
     try {
       const h = await storage.getHistory();
       // Ensure history items have the prompt property required by HistoryDrawer
-      const historyWithPrompt = h.map((item: any) => ({
+      const historyWithInput = h.map((item: any) => ({
         id: item.id,
-        prompt: item.prompt || '',
-        timestamp: item.timestamp || new Date().toISOString()
+        input: item.input ?? item.output?.original_prompt ?? '',
+        timestamp: item.timestamp || new Date().toISOString(),
+        output: item.output,
+        deviceName: item.deviceName || item.output?.device_name || 'unnamed'
       })) as unknown as HistoryItem[];
-      setHistory(historyWithPrompt);
+      setHistory(historyWithInput);
     } catch (err) {
       console.error('Failed to load history:', err);
     }
@@ -204,7 +206,7 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         history={history}
-        onLoadItem={loadHistoryItem}
+        onLoadItem={loadHistoryItem as any}
         onClearAll={async () => {
           await storage.clearHistory();
           await loadHistory();

@@ -14,7 +14,7 @@ export default function AnalyticsPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await adminAnalytics('PichaAdmin', 'PichaAdmin@123');
+        const res = await adminAnalytics('PichaAdmin');
         setData(res);
       } catch (err: any) {
         setError(err?.message || 'Failed to auto-load admin data');
