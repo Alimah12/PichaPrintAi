@@ -1,6 +1,36 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { getToken, clearToken } from "../../src/lib/auth";
 
 export default function Header() {
+  const [authed, setAuthed] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setAuthed(!!getToken());
+  }, []);
+
+  useEffect(() => {
+    if (authed && pathname !== '/demo') {
+      router.push('/demo');
+      return;
+    }
+
+    if (!authed && pathname === '/demo') {
+      router.push('/');
+    }
+  }, [authed, pathname, router]);
+
+  const handleSignOut = () => {
+    clearToken();
+    setAuthed(false);
+    router.push('/');
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full">
       <div className="backdrop-blur-sm bg-white/60 dark:bg-black/60 border-b border-white/10 dark:border-black/20">
@@ -22,18 +52,38 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="#signup"
-              className="hidden sm:inline-flex items-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-            >
-              Sign up
-            </Link>
-            <Link
-              href="#more"
-              className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-50"
-            >
-              More
-            </Link>
+            {!authed ? (
+              <>
+                <Link
+                  href="/signup"
+                  className="hidden sm:inline-flex items-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+                >
+                  Sign up
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-50"
+                >
+                  Sign in
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/demo"
+                  className="hidden sm:inline-flex items-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+                >
+                  Create
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-50"
+                >
+                  Sign out
+                </button>
+              </>
+            )}
+
             <button className="ml-2 inline-flex items-center p-2 rounded-md md:hidden text-zinc-700 dark:text-zinc-300">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
                 <path d="M3 12h18M3 6h18M3 18h18"></path>

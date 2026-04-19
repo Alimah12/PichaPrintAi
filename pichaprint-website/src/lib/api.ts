@@ -1,6 +1,6 @@
 import { HistoryItem, GenerationOutput } from '../types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://pichaprintai-1.onrender.com';
 const GENERATOR_URL = process.env.NEXT_PUBLIC_GENERATOR_URL || 'https://goodn6138--ai-hardware-service-fastapi-app.modal.run';
 
 export async function generateHardware(prompt: string): Promise<GenerationOutput> {
