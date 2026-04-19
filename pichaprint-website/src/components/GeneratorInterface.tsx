@@ -13,6 +13,7 @@ import BuildOrderModal from './BuildOrderModal';
 import { generateHardware } from '../lib/api';
 import { storage } from '../lib/storage';
 import { getToken, clearToken } from '../lib/auth';
+import { logoutAndRedirect } from '../lib/logout';
 import { me, listDesigns } from '../lib/api';
 import { GenerationOutput, HistoryItem } from '../types';
 
@@ -172,22 +173,16 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
       // Clear any stored user data
       setUser(null);
       setDesigns([]);
-      
       // Close any open UI that may show user data
       setIsDrawerOpen(false);
       setHistory([]);
       setCurrentOutput(null);
 
-      // Small delay to ensure cleanup is complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // small wait to let React flush state
+      await new Promise(resolve => setTimeout(resolve, 50));
 
-      // Prefer client-side navigation, fall back to full reload if that fails
-      try {
-        await router.push('https://picha-print-ai.vercel.app');
-      } catch (e) {
-        // If Next router fails for some reason, force a reload
-        window.location.href = 'https://picha-print-ai.vercel.app';
-      }
+      // Delegate to centralized logout helper which uses replace to avoid history loops
+      await logoutAndRedirect('https://picha-print-ai.vercel.app');
     } catch (error) {
       console.error('Logout error:', error);
       // Force redirect even if there's an error
