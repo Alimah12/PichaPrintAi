@@ -54,13 +54,24 @@ export async function generateHardware(prompt: string): Promise<GenerationOutput
 }
 
 // --- Auth + backend helpers ---
-export async function signup(email: string, password: string) {
+export async function signup(payload: {
+  username: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email: string;
+  country?: string | null;
+  phone?: string | null;
+  password: string;
+}) {
   const res = await fetch(`${API_URL}/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify(payload)
   });
-  if (!res.ok) throw new Error('Signup failed');
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || 'Signup failed');
+  }
   return res.json();
 }
 

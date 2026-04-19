@@ -51,3 +51,9 @@ PY
 If you plan to use Postgres or another hosted DB, set `DATABASE_URL` in your `.env` (or export it in the environment) to the connection string before starting the app.
 
 Note: `psycopg2-binary` is included in `requirements.txt` so the app can connect to Postgres.
+
+Authentication
+--------------
+The current backend uses a direct signup flow (no email OTP). To create an account users must provide `username`, `first_name`, `last_name`, `email`, `country`, `phone`, and `password` — the server creates the user immediately and returns a JWT.
+
+If you later enable email verification you can integrate SMTP settings and re-introduce an OTP flow.

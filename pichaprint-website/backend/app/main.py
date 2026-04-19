@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .database import SessionLocal, init_db
 from . import models, schemas, auth
@@ -41,16 +41,30 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     return user
 
 
+# OTP flow removed — signup is direct and no email verification is required.
+
+
 @app.post('/auth/signup', response_model=schemas.Token)
-def signup(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(models.User).filter(models.User.email == user_in.email).first()
-    if existing:
+def signup(user_in: schemas.UserSignup, db: Session = Depends(get_db)):
+    # Basic uniqueness checks
+    if db.query(models.User).filter(models.User.email == user_in.email).first():
         raise HTTPException(status_code=400, detail='Email already registered')
-    hashed = auth.get_password_hash(user_in.password)
-    user = models.User(email=user_in.email, hashed_password=hashed)
+    if db.query(models.User).filter(models.User.username == user_in.username).first():
+        raise HTTPException(status_code=400, detail='Username already in use')
+
+    user = models.User(
+        username=user_in.username,
+        first_name=user_in.first_name,
+        last_name=user_in.last_name,
+        email=user_in.email,
+        country=user_in.country,
+        phone=user_in.phone,
+        hashed_password=auth.get_password_hash(user_in.password)
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
+
     token = auth.create_access_token({'sub': str(user.id)})
     return {'access_token': token}
 
@@ -60,6 +74,7 @@ def login(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == user_in.email).first()
     if not user or not auth.verify_password(user_in.password, user.hashed_password):
         raise HTTPException(status_code=400, detail='Invalid credentials')
+    # No email verification required (OTP flow removed)
     token = auth.create_access_token({'sub': str(user.id)})
     return {'access_token': token}
 
