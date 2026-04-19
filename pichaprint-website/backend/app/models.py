@@ -14,6 +14,7 @@ class User(Base):
     country = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     hashed_password = Column(String, nullable=False)
+    is_admin = Column(Boolean, nullable=False, default=False)
     
     designs = relationship('Design', back_populates='owner')
 

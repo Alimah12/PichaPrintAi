@@ -21,6 +21,7 @@ class UserOut(BaseModel):
     id: int
     username: str
     email: EmailStr
+    is_admin: Optional[bool] = False
 
     class Config:
         from_attributes = True

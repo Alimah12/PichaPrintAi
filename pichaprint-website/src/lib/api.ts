@@ -101,17 +101,36 @@ export async function saveDesignToBackend(token: string, input_text: string, out
   return res.json();
 }
 
-export async function listDesigns(token: string) {
-  const res = await fetch(`${API_URL}/designs`, { headers: { Authorization: `Bearer ${token}` } });
+export async function listDesigns(token?: string, user_id?: number) {
+  const url = new URL(`${API_URL}/designs`);
+  if (typeof user_id !== 'undefined' && user_id !== null) url.searchParams.set('user_id', String(user_id));
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url.toString(), { headers });
   if (!res.ok) throw new Error('Failed to list designs');
   return res.json();
 }
 
-export async function adminAnalytics(adminKey: string) {
-  const res = await fetch(`${API_URL}/admin/analytics`, { headers: { 'X-ADMIN-KEY': adminKey } });
+export async function adminAnalytics(adminToken?: string) {
+  const headers: Record<string, string> = {};
+  if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
+  const res = await fetch(`${API_URL}/admin/analytics`, { headers });
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(txt || 'Failed to fetch analytics');
+  }
+  return res.json();
+}
+
+export async function adminLogin(username: string, password: string) {
+  const res = await fetch(`${API_URL}/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || 'Admin login failed');
   }
   return res.json();
 }

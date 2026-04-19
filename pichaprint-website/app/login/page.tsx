@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { login } from '../../src/lib/api';
+import { login, me } from '../../src/lib/api';
 import { setToken } from '../../src/lib/auth';
 
 export default function LoginPage() {
@@ -20,9 +20,21 @@ export default function LoginPage() {
 
     try {
       const data = await login(email, password);
-      setToken(data.access_token);
-      // Redirect to the production demo route
-      window.location.href = 'https://picha-print-ai.vercel.app/demo';
+      const token = data.access_token;
+      setToken(token);
+
+      // Fetch current user to determine role and redirect accordingly
+      try {
+        const current = await me(token);
+        if (current?.is_admin) {
+          window.location.href = 'https://picha-print-ai.vercel.app/admin/analytics';
+        } else {
+          window.location.href = 'https://picha-print-ai.vercel.app/demo';
+        }
+      } catch (e) {
+        // If /me fails, fall back to demo
+        window.location.href = 'https://picha-print-ai.vercel.app/demo';
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {

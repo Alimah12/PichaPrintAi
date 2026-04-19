@@ -105,23 +105,71 @@ def create_design(design_in: schemas.DesignCreate, current_user: models.User = D
 
 
 @app.get('/designs', response_model=list[schemas.DesignOut])
-def list_designs(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    items = db.query(models.Design).filter(models.Design.user_id == current_user.id).order_by(models.Design.id.desc()).all()
+def list_designs(user_id: int | None = None, db: Session = Depends(get_db)):
+    """
+    Public endpoint to list designs. If `user_id` is provided, returns designs for that user,
+    otherwise returns all designs ordered by id desc.
+    """
+    query = db.query(models.Design)
+    if user_id is not None:
+        query = query.filter(models.Design.user_id == user_id)
+    items = query.order_by(models.Design.id.desc()).all()
     return items
 
 
 @app.get('/designs/{design_id}', response_model=schemas.DesignOut)
-def get_design(design_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    item = db.query(models.Design).filter(models.Design.id == design_id, models.Design.user_id == current_user.id).first()
+def get_design(design_id: int, db: Session = Depends(get_db)):
+    """Public endpoint to fetch a single design by id."""
+    item = db.query(models.Design).filter(models.Design.id == design_id).first()
     if not item:
         raise HTTPException(status_code=404, detail='Design not found')
     return item
 
 
+@app.post('/admin/login')
+def admin_login(creds: dict):
+    """Admin login using deploy-time credentials (ADMIN_USERNAME / ADMIN_PASSWORD env vars).
+
+    Returns a JWT with {'admin': True} when credentials match.
+    """
+    admin_user = os.getenv('ADMIN_USERNAME', 'PichaAdmin')
+    admin_pass = os.getenv('ADMIN_PASSWORD', 'PichaAdmin@123')
+    username = creds.get('username')
+    password = creds.get('password')
+    if not username or not password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Missing credentials')
+    if username != admin_user or password != admin_pass:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid admin credentials')
+    token = auth.create_access_token({'admin': True})
+    return {'access_token': token}
+
+
 @app.get('/admin/analytics')
-def admin_analytics(x_admin_key: str | None = Header(None), db: Session = Depends(get_db)):
-    # Simple admin access: require header X-ADMIN-KEY to match SECRET_KEY
-    if not x_admin_key or x_admin_key != auth.SECRET_KEY:
+def admin_analytics(authorization: str | None = Header(None), db: Session = Depends(get_db)):
+    """Protected admin analytics: requires `Authorization: Bearer <token>` with admin claim."""
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Forbidden')
+    token = authorization.split(' ', 1)[1]
+    payload = auth.decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Forbidden')
+
+    # Accept tokens issued by `admin_login` (with {'admin': True})
+    if payload.get('admin'):
+        allowed = True
+    else:
+        # Otherwise expect a normal user token with 'sub' and verify the user has is_admin
+        allowed = False
+        if 'sub' in payload:
+            try:
+                uid = int(payload['sub'])
+                u = db.query(models.User).filter(models.User.id == uid).first()
+                if u and getattr(u, 'is_admin', False):
+                    allowed = True
+            except Exception:
+                allowed = False
+
+    if not allowed:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Forbidden')
 
     users = db.query(models.User).all()
