@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Hero from './Hero';
 import PromptInput from './PromptInput';
 import STLViewer from './STLViewer';
@@ -11,11 +12,13 @@ import HistoryDrawer from './HistoryDrawer';
 import BuildOrderModal from './BuildOrderModal';
 import { generateHardware } from '../lib/api';
 import { storage } from '../lib/storage';
+import { getToken, clearToken } from '../lib/auth';
+import { me, listDesigns } from '../lib/api';
 import { HistoryItem, GenerationOutput } from '../types';
 
 type TabType = 'scad' | 'circuit' | 'firmware' | 'bom';
 
-export function GeneratorInterface({ initialShowGenerator = false, externalDesign }: { initialShowGenerator?: boolean, externalDesign?: any }) {
+export function GeneratorInterface({ initialShowGenerator = false }: { initialShowGenerator?: boolean }) {
   const [showGenerator, setShowGenerator] = useState(initialShowGenerator);
   const [loading, setLoading] = useState(false);
   const [currentOutput, setCurrentOutput] = useState<GenerationOutput | null>(null);
@@ -25,6 +28,12 @@ export function GeneratorInterface({ initialShowGenerator = false, externalDesig
   const [isBuildModalOpen, setIsBuildModalOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
+  
+  const router = useRouter();
+  const [user, setUser] = useState<any | null>(null);
+  const [designs, setDesigns] = useState<any[]>([]);
+  const [userLoading, setUserLoading] = useState(true);
+  const [userError, setUserError] = useState<string | null>(null);
   
   useEffect(() => {
     storage.init()
@@ -37,27 +46,41 @@ export function GeneratorInterface({ initialShowGenerator = false, externalDesig
         setError('Failed to initialize storage');
       });
   }, []);
-
-  // If parent passes an external design (from backend list), load it into the interface
+  
   useEffect(() => {
-    if (!externalDesign) return;
-    try {
-      let parsed: any = externalDesign;
-      // backend items may carry output_json as string
-      if (externalDesign.output_json) {
-        parsed = JSON.parse(externalDesign.output_json);
-      } else if (externalDesign.output) {
-        parsed = externalDesign.output;
-      }
-
-      setCurrentOutput(parsed);
-      setShowGenerator(true);
-      setActiveTab('scad');
-    } catch (err) {
-      console.error('Failed to load external design', err);
-      setError('Failed to load design');
+    const token = getToken();
+    if (!token) {
+      router.push('/login');
+      return;
     }
-  }, [externalDesign]);
+
+    let mounted = true;
+
+    async function fetchData() {
+      setUserLoading(true);
+      try {
+        const u = await me(token!);
+        if (!mounted) return;
+        setUser(u);
+        const ds = await listDesigns(token!);
+        if (!mounted) return;
+        setDesigns(ds || []);
+      } catch (err: any) {
+        console.error('Failed to fetch user/designs', err);
+        setUserError('Failed to load account data');
+        clearToken();
+        router.push('/login');
+      } finally {
+        if (mounted) setUserLoading(false);
+      }
+    }
+
+    fetchData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
   
   const loadHistory = async () => {
     try {
@@ -127,14 +150,65 @@ export function GeneratorInterface({ initialShowGenerator = false, externalDesig
     URL.revokeObjectURL(url);
   };
   
+  function handleLogout() {
+    clearToken();
+    router.push('/');
+  }
+  
   // If generator hasn't been activated, show Hero
   if (!showGenerator) {
-    return <Hero onGetStarted={() => setShowGenerator(true)} />;
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <Hero onGetStarted={() => setShowGenerator(true)} />
+        </div>
+      </div>
+    );
   }
   
   // Main generator view
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <aside className="col-span-1 bg-white rounded shadow p-4">
+          <h3 className="font-semibold mb-3">Account</h3>
+          {userLoading ? (
+            <div className="text-sm text-gray-500">Loading...</div>
+          ) : userError ? (
+            <div className="text-sm text-red-500">{userError}</div>
+          ) : user ? (
+            <div className="text-sm">
+              <div className="mb-2"><strong>{user.username}</strong></div>
+              <div className="text-gray-600 text-xs">{user.email}</div>
+              {user.first_name && <div className="text-gray-600 text-xs">{user.first_name} {user.last_name}</div>}
+              {user.country && <div className="text-gray-600 text-xs">{user.country}</div>}
+              {user.phone && <div className="text-gray-600 text-xs">{user.phone}</div>}
+              <div className="mt-4">
+                <button onClick={handleLogout} className="px-3 py-1 bg-rose-500 text-white rounded">Logout</button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">Not signed in</div>
+          )}
+
+          <div className="mt-6">
+            <h4 className="font-medium mb-2">Your designs</h4>
+            {userLoading ? (
+              <div className="text-sm text-gray-500">Loading designs...</div>
+            ) : designs.length === 0 ? (
+              <div className="text-sm text-gray-500">No saved designs yet.</div>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {designs.map((d) => (
+                  <li key={d.id} className="p-2 bg-gray-50 rounded border">{d.input_text?.slice(0, 80) || 'Design'}<div className="text-xs text-gray-400">{new Date(d.timestamp).toLocaleString()}</div></li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </aside>
+
+        <main className="col-span-1 lg:col-span-3">
+          <div className="min-h-screen bg-gray-900">
       <HistoryDrawer 
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
@@ -308,6 +382,9 @@ export function GeneratorInterface({ initialShowGenerator = false, externalDesig
         onClose={() => setIsBuildModalOpen(false)} 
         currentOutput={currentOutput}
       />
+        </div>
+      </main>
     </div>
+  </div>
   );
 }
