@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { login } from '../../src/lib/api';
+import { setToken } from '../../src/lib/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,28 +17,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    
+
     try {
-      const response = await fetch('https://pichaprintai-1.onrender.com/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Login failed');
-      }
-
-      const data = await response.json();
-      
-      // Store token
-      localStorage.setItem('access_token', data.access_token);
-      
-      // Redirect to demo
-      router.push('/demo');
+      const data = await login(email, password);
+      setToken(data.access_token);
+      // Redirect to the production demo route
+      window.location.href = 'https://picha-print-ai.vercel.app/demo';
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {

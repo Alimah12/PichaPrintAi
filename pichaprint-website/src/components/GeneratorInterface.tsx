@@ -183,10 +183,10 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
 
       // Prefer client-side navigation, fall back to full reload if that fails
       try {
-        await router.push('/');
+        await router.push('https://picha-print-ai.vercel.app');
       } catch (e) {
         // If Next router fails for some reason, force a reload
-        window.location.href = '/';
+        window.location.href = 'https://picha-print-ai.vercel.app';
       }
     } catch (error) {
       console.error('Logout error:', error);

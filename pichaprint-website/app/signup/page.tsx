@@ -82,7 +82,8 @@ export default function SignupPage() {
 
       const data = await signup(payload as any);
       setToken(data.access_token);
-      router.push('/demo');
+      // Redirect to production demo route
+      window.location.href = 'https://picha-print-ai.vercel.app/demo';
     } catch (err: any) {
       setError(err?.message || 'Signup failed');
     } finally {
