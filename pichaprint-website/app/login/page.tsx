@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, me } from '../../src/lib/api';
 import { setToken } from '../../src/lib/auth';
+import { checkAdminAccess } from '../../src/lib/adminAuth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,27 +24,16 @@ export default function LoginPage() {
       const token = data.access_token;
       setToken(token);
 
-      // Fetch current user to determine role and redirect accordingly
-      try {
-        const current = await me(token);
-        if (current?.is_admin) {
-          window.location.href = 'https://picha-print-ai.vercel.app/admin/analytics';
-        } else {
-          window.location.href = 'https://picha-print-ai.vercel.app/demo';
-        }
-      } catch (e) {
-        // If /me fails, try the admin analytics endpoint directly with the token
-        try {
-          await (await import('../../src/lib/api')).adminAnalytics(token);
-          // if it succeeds, token has admin access
-          window.location.href = 'https://picha-print-ai.vercel.app/admin/analytics';
-        } catch (err) {
-          // otherwise fall back to demo
-          window.location.href = 'https://picha-print-ai.vercel.app/demo';
-        }
+      // Centralized redirection logic
+      const isAdmin = await checkAdminAccess(token);
+      if (isAdmin) {
+        window.location.href = 'https://picha-print-ai.vercel.app/admin/analytics';
+      } else {
+        window.location.href = 'https://picha-print-ai.vercel.app/demo';
       }
     } catch (err: any) {
       setError(err.message || 'Login failed');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
