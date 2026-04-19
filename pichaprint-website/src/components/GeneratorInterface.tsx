@@ -173,11 +173,21 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
       setUser(null);
       setDesigns([]);
       
+      // Close any open UI that may show user data
+      setIsDrawerOpen(false);
+      setHistory([]);
+      setCurrentOutput(null);
+
       // Small delay to ensure cleanup is complete
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Redirect to home page (parent path)
-      router.replace('/');
+
+      // Prefer client-side navigation, fall back to full reload if that fails
+      try {
+        await router.push('/');
+      } catch (e) {
+        // If Next router fails for some reason, force a reload
+        window.location.href = '/';
+      }
     } catch (error) {
       console.error('Logout error:', error);
       // Force redirect even if there's an error
