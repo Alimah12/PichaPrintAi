@@ -17,12 +17,16 @@ export function clearAdminToken() {
 
 export async function checkAdminAccess(token: string): Promise<boolean> {
   try {
+    console.log('Checking admin access via /me endpoint...');
     const currentUser = await me(token);
+    console.log('User info from /me:', currentUser);
     return currentUser?.is_admin || false;
   } catch (error) {
     console.warn('Failed to fetch user info via /me:', error);
     try {
+      console.log('Falling back to /admin/analytics endpoint...');
       await adminAnalytics(token);
+      console.log('Admin access confirmed via /admin/analytics');
       return true;
     } catch (fallbackError) {
       console.error('Admin access check failed via /admin/analytics:', fallbackError);
