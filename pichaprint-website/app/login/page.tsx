@@ -32,8 +32,15 @@ export default function LoginPage() {
           window.location.href = 'https://picha-print-ai.vercel.app/demo';
         }
       } catch (e) {
-        // If /me fails, fall back to demo
-        window.location.href = 'https://picha-print-ai.vercel.app/demo';
+        // If /me fails, try the admin analytics endpoint directly with the token
+        try {
+          await (await import('../../src/lib/api')).adminAnalytics(token);
+          // if it succeeds, token has admin access
+          window.location.href = 'https://picha-print-ai.vercel.app/admin/analytics';
+        } catch (err) {
+          // otherwise fall back to demo
+          window.location.href = 'https://picha-print-ai.vercel.app/demo';
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Login failed');
