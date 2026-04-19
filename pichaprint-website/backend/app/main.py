@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+import os
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -11,9 +12,14 @@ init_db()
 
 app = FastAPI(title="pichaprint-backend")
 
+# Configure allowed origins via env var `FRONTEND_ORIGINS` (comma-separated).
+# When `allow_credentials=True`, do NOT use '*' for origins — provide explicit origins.
+raw_origins = os.getenv('FRONTEND_ORIGINS', 'https://picha-print-ai.vercel.app,http://localhost:3000')
+allow_origins = [o.strip() for o in raw_origins.split(',') if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -5,6 +5,33 @@ import { useRouter } from 'next/navigation';
 import { signup } from '../../src/lib/api';
 import { setToken } from '../../src/lib/auth';
 
+function PasswordChecks({ pw }: { pw: string }) {
+  const checks = {
+    length: pw.length >= 8,
+    lower: /[a-z]/.test(pw),
+    upper: /[A-Z]/.test(pw),
+    number: /[0-9]/.test(pw),
+    special: /[^A-Za-z0-9]/.test(pw),
+  };
+
+  const row = (ok: boolean, label: string) => (
+    <div className="flex items-center gap-2">
+      <span className={`h-3 w-3 rounded-full ${ok ? 'bg-emerald-400' : 'bg-gray-600'}`} />
+      <span className={ok ? 'text-emerald-200' : 'text-gray-400'}>{label}</span>
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {row(checks.length, 'At least 8 characters')}
+      {row(checks.lower, 'Lowercase letter')}
+      {row(checks.upper, 'Uppercase letter')}
+      {row(checks.number, 'Number')}
+      {row(checks.special, 'Special character')}
+    </div>
+  );
+}
+
 export default function SignupPage() {
   const router = useRouter();
 
@@ -19,15 +46,26 @@ export default function SignupPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const validatePassword = (pw: string) => pw.length >= 8;
+  const validatePassword = (pw: string) => {
+    return {
+      length: pw.length >= 8,
+      lower: /[a-z]/.test(pw),
+      upper: /[A-Z]/.test(pw),
+      number: /[0-9]/.test(pw),
+      special: /[^A-Za-z0-9]/.test(pw),
+    };
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!username) return setError('Username is required');
     if (!email) return setError('Email is required');
-    if (!validatePassword(password)) return setError('Password must be >= 8 characters');
+    const pwChecks = validatePassword(password);
+    if (Object.values(pwChecks).includes(false)) return setError('Password does not meet requirements');
     if (password !== confirmPassword) return setError('Passwords do not match');
 
     setLoading(true);
@@ -84,13 +122,32 @@ export default function SignupPage() {
           <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded mb-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="+254700000000" />
 
           <label className="block text-sm mb-1 text-gray-200">Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded mb-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Choose a strong password" />
+          <div className="relative">
+            <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded mb-1 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Choose a strong password" />
+            <button type="button" onClick={() => setShowPassword(s => !s)} className="absolute right-2 top-2 text-gray-300 hover:text-white">
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          <div className="mb-3 text-xs text-gray-300">
+            <PasswordChecks pw={password} />
+          </div>
 
           <label className="block text-sm mb-1 text-gray-200">Confirm password</label>
-          <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded mb-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Repeat password" />
+          <div className="relative">
+            <input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full p-3 bg-gray-800 border border-gray-700 rounded mb-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Repeat password" />
+            <button type="button" onClick={() => setShowConfirm(s => !s)} className="absolute right-2 top-2 text-gray-300 hover:text-white">
+              {showConfirm ? 'Hide' : 'Show'}
+            </button>
+          </div>
 
           <div className="flex items-center justify-between">
-            <button disabled={loading} className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded shadow-md hover:scale-[1.02] transition-transform">Create account</button>
+            <button disabled={loading || Object.values(validatePassword(password)).includes(false) || password !== confirmPassword} className={`px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded shadow-md transition-transform flex items-center ${loading ? 'opacity-70 cursor-wait' : 'hover:scale-[1.02]'}`}>
+              {loading && (
+                <svg className="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+              )}
+              Create account
+            </button>
             <a href="/login" className="text-sm text-emerald-400">Sign in</a>
           </div>
 
