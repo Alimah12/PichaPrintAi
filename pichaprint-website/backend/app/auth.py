@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import os
-
-from passlib.context import CryptContext
+import bcrypt
 from jose import jwt, JWTError
 
 # Use environment variable in production. Keep a safe default for local dev
@@ -10,26 +9,32 @@ SECRET_KEY = os.getenv("SECRET_KEY", "CHANGE_THIS_TO_A_RANDOM_SECRET_IN_PROD")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def get_password_hash(password: str) -> str:
+    """Hash a password using bcrypt directly with 72-byte truncation"""
     # bcrypt has a 72-byte limit. Truncate the password bytes to 72 before hashing.
     pw_bytes = password.encode('utf-8')
     if len(pw_bytes) > 72:
         pw_bytes = pw_bytes[:72]
-        # decode back to string ignoring incomplete chars at the end
-        password = pw_bytes.decode('utf-8', errors='ignore')
-    return pwd_context.hash(password)
+    
+    # Generate salt and hash
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pw_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash using bcrypt directly with 72-byte truncation"""
     # Ensure verification uses the same truncation logic (72 bytes)
     pw_bytes = plain_password.encode('utf-8')
     if len(pw_bytes) > 72:
         pw_bytes = pw_bytes[:72]
-        plain_password = pw_bytes.decode('utf-8', errors='ignore')
-    return pwd_context.verify(plain_password, hashed_password)
+    
+    # Convert hashed_password to bytes if it's a string
+    if isinstance(hashed_password, str):
+        hashed_password = hashed_password.encode('utf-8')
+    
+    return bcrypt.checkpw(pw_bytes, hashed_password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
