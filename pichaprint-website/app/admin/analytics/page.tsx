@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { adminAnalytics } from '../../../src/lib/api';
 
 export default function AnalyticsPage() {
@@ -8,6 +8,23 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const autoFetchAdminData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await adminAnalytics('PichaAdmin', 'PichaAdmin@123');
+        setData(res);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to auto-load admin data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    autoFetchAdminData();
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);

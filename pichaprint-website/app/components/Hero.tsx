@@ -1,10 +1,26 @@
- 'use client';
+'use client';
 
 import { useRouter } from 'next/navigation';
-import { getToken } from '../../src/lib/auth';
+
+// Simple token check function - adjust path as needed
+const getToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('access_token');
+  }
+  return null;
+};
 
 export default function Hero() {
   const router = useRouter();
+
+  const handleDemoClick = () => {
+    const token = getToken();
+    if (token) {
+      router.push('/demo');
+    } else {
+      router.push('/login');
+    }
+  };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
@@ -98,11 +114,7 @@ export default function Hero() {
         <div className="mt-12 flex flex-col sm:flex-row justify-center gap-4">
           <button
             type="button"
-            onClick={() => {
-              const token = getToken();
-              if (token) router.push('/demo');
-              else router.push('/login');
-            }}
+            onClick={handleDemoClick}
             className="rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 px-8 py-3.5 text-sm font-medium text-white shadow-lg shadow-emerald-500/25 transition-all hover:scale-105 hover:shadow-xl animate-float"
           >
             Try the Demo
@@ -117,7 +129,7 @@ export default function Hero() {
 
         {/* Trust indicator */}
         <p className="mt-8 text-xs text-white/50">
-           Built for engineers, makers, and hardware startups
+          Built for engineers, makers, and hardware startups
         </p>
       </section>
     </div>

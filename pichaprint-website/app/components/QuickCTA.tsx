@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 interface QuickCTAProps {
   title?: string;
   description?: string;
@@ -8,6 +10,13 @@ interface QuickCTAProps {
   buttonHref?: string;
 }
 
+const isAuthenticated = (): boolean => {
+  if (typeof window !== 'undefined') {
+    return !!localStorage.getItem('access_token');
+  }
+  return false;
+};
+
 export default function QuickCTA({
   title = 'Launch Your Hardware Journey',
   description = 'Start from a single prompt and get a complete design workflow—STL, firmware, and circuit-ready outputs in one click.',
@@ -15,6 +24,16 @@ export default function QuickCTA({
   buttonLabel = 'Try the Demo',
   buttonHref = '/demo'
 }: QuickCTAProps) {
+  const router = useRouter();
+
+  const handleDemoClick = () => {
+    if (isAuthenticated()) {
+      router.push(buttonHref);
+    } else {
+      router.push('/login');
+    }
+  };
+
   return (
     <section className="bg-gradient-to-r from-emerald-600 via-cyan-500 to-slate-900 py-12 px-6 rounded-3xl shadow-2xl shadow-cyan-800/30 overflow-hidden relative">
       <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.25),_transparent_45%)]" />
@@ -29,12 +48,12 @@ export default function QuickCTA({
             Prompt it, print it, get the full package at <span className="font-semibold text-white">{priceText}</span>.
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <a
-              href={buttonHref}
+            <button
+              onClick={handleDemoClick}
               className="inline-flex items-center justify-center rounded-full bg-white px-7 py-2.5 text-sm font-semibold text-slate-900 shadow-xl shadow-white/20 transition hover:-translate-y-0.5 hover:bg-slate-100"
             >
               {buttonLabel}
-            </a>
+            </button>
             <div className="rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm text-slate-100">
               <p className="text-[0.65rem] uppercase tracking-[0.2em] text-slate-200/80">Price</p>
               <p className="mt-1 text-lg font-semibold text-white">{priceText}</p>

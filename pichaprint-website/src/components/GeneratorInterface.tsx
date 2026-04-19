@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Hero from './Hero';
 import PromptInput from './PromptInput';
@@ -14,7 +14,7 @@ import { generateHardware } from '../lib/api';
 import { storage } from '../lib/storage';
 import { getToken, clearToken } from '../lib/auth';
 import { me, listDesigns } from '../lib/api';
-import { HistoryItem, GenerationOutput } from '../types';
+import { GenerationOutput, HistoryItem } from '../types';
 
 type TabType = 'scad' | 'circuit' | 'firmware' | 'bom';
 
@@ -34,6 +34,7 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
   const [designs, setDesigns] = useState<any[]>([]);
   const [userLoading, setUserLoading] = useState(true);
   const [userError, setUserError] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   useEffect(() => {
     storage.init()
@@ -85,7 +86,13 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
   const loadHistory = async () => {
     try {
       const h = await storage.getHistory();
-      setHistory(h);
+      // Ensure history items have the prompt property required by HistoryDrawer
+      const historyWithPrompt = h.map((item: any) => ({
+        id: item.id,
+        prompt: item.prompt || '',
+        timestamp: item.timestamp || new Date().toISOString()
+      })) as unknown as HistoryItem[];
+      setHistory(historyWithPrompt);
     } catch (err) {
       console.error('Failed to load history:', err);
     }
@@ -113,21 +120,23 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
     }
   };
   
-  const loadHistoryItem = async (item: HistoryItem) => {
-    try {
-      const fullEntry = await storage.loadDesign(item.id);
-      if (fullEntry && fullEntry.output) {
-        setCurrentOutput(fullEntry.output);
-        setIsDrawerOpen(false);
-        setShowGenerator(true);
-      } else {
-        setError('Design not found in storage');
+  const loadHistoryItem = useCallback((item: HistoryItem) => {
+    (async () => {
+      try {
+        const fullEntry = await storage.loadDesign(item.id);
+        if (fullEntry && fullEntry.output) {
+          setCurrentOutput(fullEntry.output);
+          setIsDrawerOpen(false);
+          setShowGenerator(true);
+        } else {
+          setError('Design not found in storage');
+        }
+      } catch (err) {
+        console.error('Error loading history item:', err);
+        setError('Failed to load design from history');
       }
-    } catch (err) {
-      console.error('Error loading history item:', err);
-      setError('Failed to load design from history');
-    }
-  };
+    })();
+  }, []);
   
   const downloadSTL = () => {
     if (!currentOutput?.stlData) return;
@@ -150,10 +159,31 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
     URL.revokeObjectURL(url);
   };
   
-  function handleLogout() {
-    clearToken();
-    router.push('/');
-  }
+  const handleLogout = async () => {
+    if (isLoggingOut) return; // Prevent multiple logout attempts
+    setIsLoggingOut(true);
+    
+    try {
+      // Clear all auth data
+      clearToken();
+      
+      // Clear any stored user data
+      setUser(null);
+      setDesigns([]);
+      
+      // Small delay to ensure cleanup is complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Redirect to home page (parent path)
+      router.replace('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force redirect even if there's an error
+      window.location.href = '/';
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
   
   // If generator hasn't been activated, show Hero
   if (!showGenerator) {
@@ -168,47 +198,8 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
   
   // Main generator view
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <aside className="col-span-1 bg-white rounded shadow p-4">
-          <h3 className="font-semibold mb-3">Account</h3>
-          {userLoading ? (
-            <div className="text-sm text-gray-500">Loading...</div>
-          ) : userError ? (
-            <div className="text-sm text-red-500">{userError}</div>
-          ) : user ? (
-            <div className="text-sm">
-              <div className="mb-2"><strong>{user.username}</strong></div>
-              <div className="text-gray-600 text-xs">{user.email}</div>
-              {user.first_name && <div className="text-gray-600 text-xs">{user.first_name} {user.last_name}</div>}
-              {user.country && <div className="text-gray-600 text-xs">{user.country}</div>}
-              {user.phone && <div className="text-gray-600 text-xs">{user.phone}</div>}
-              <div className="mt-4">
-                <button onClick={handleLogout} className="px-3 py-1 bg-rose-500 text-white rounded">Logout</button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500">Not signed in</div>
-          )}
-
-          <div className="mt-6">
-            <h4 className="font-medium mb-2">Your designs</h4>
-            {userLoading ? (
-              <div className="text-sm text-gray-500">Loading designs...</div>
-            ) : designs.length === 0 ? (
-              <div className="text-sm text-gray-500">No saved designs yet.</div>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {designs.map((d) => (
-                  <li key={d.id} className="p-2 bg-gray-50 rounded border">{d.input_text?.slice(0, 80) || 'Design'}<div className="text-xs text-gray-400">{new Date(d.timestamp).toLocaleString()}</div></li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </aside>
-
-        <main className="col-span-1 lg:col-span-3">
-          <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900">
+      {/* Sidebar Drawer with User Data and Designs */}
       <HistoryDrawer 
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
@@ -218,8 +209,14 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
           await storage.clearHistory();
           await loadHistory();
         }}
+        user={user}
+        userLoading={userLoading}
+        userError={userError}
+        designs={designs}
+        onLogout={handleLogout}
       />
       
+      {/* Header */}
       <header className="fixed top-0 left-0 right-0 h-[60px] bg-white/90 backdrop-blur-md border-b border-white/20 flex items-center justify-between px-6 z-50">
         <div className="flex items-center gap-3">
           <button 
@@ -250,6 +247,7 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
         </div>
       </header>
       
+      {/* Main Content */}
       <main className="pt-24 pb-32 px-6 max-w-5xl mx-auto">
         <div className="space-y-6">
           {/* Current device info */}
@@ -262,7 +260,7 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
                 </p>
               </div>
               <button 
-                onClick={() => setIsBuildModalOpen(true)}
+                onClick={downloadSTL}
                 className="px-3 py-1.5 text-xs border border-gray-200 text-gray-700 rounded-lg hover:bg-emerald-50 transition-colors"
               >
                 Download STL
@@ -382,9 +380,6 @@ export function GeneratorInterface({ initialShowGenerator = false }: { initialSh
         onClose={() => setIsBuildModalOpen(false)} 
         currentOutput={currentOutput}
       />
-        </div>
-      </main>
     </div>
-  </div>
   );
 }
