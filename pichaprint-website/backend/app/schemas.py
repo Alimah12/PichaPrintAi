@@ -12,13 +12,18 @@ class UserSignup(BaseModel):
     password: str
 
 
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+
+
 class UserOut(BaseModel):
     id: int
     username: str
     email: EmailStr
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class Token(BaseModel):
@@ -39,4 +44,4 @@ class DesignOut(BaseModel):
     timestamp: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
