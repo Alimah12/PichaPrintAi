@@ -3,12 +3,18 @@
 import { useState, useEffect } from 'react';
 import { adminAnalytics } from '../../../src/lib/api';
 import { getAdminToken } from '../../../src/lib/adminAuth';
+import React from 'react';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import Sidebar from '../components/Sidebar';
+import { useRouter } from 'next/router';
 
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const router = useRouter();
 
   useEffect(() => {
     console.debug('[analytics] page mounted, checking for admin token');
@@ -74,79 +80,27 @@ export default function AnalyticsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    router.push('/login');
+  };
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Admin Analytics (Users & Designs)</h1>
-      <div className="mb-4 flex gap-2 items-center">
-        {data && <button onClick={exportCSV} className="px-3 py-2 bg-slate-700 text-white rounded">Export CSV</button>}
+    <div className="flex">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Header />
+        <main className="p-4">
+          <h2 className="text-2xl font-bold mb-4">Analytics</h2>
+          <p>Welcome to the Analytics page. Here you can view all the data insights.</p>
+          <button 
+            onClick={handleLogout} 
+            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+            Logout
+          </button>
+        </main>
+        <Footer />
       </div>
-
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-
-      {loading && <div className="text-gray-500 mb-4">Loading...</div>}
-
-      {data && (
-        <div className="overflow-auto border rounded">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 text-left">User ID</th>
-                <th className="p-2 text-left">Username</th>
-                <th className="p-2 text-left">Email</th>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Country</th>
-                <th className="p-2 text-left">Phone</th>
-                <th className="p-2 text-left">Design ID</th>
-                <th className="p-2 text-left">Design Input</th>
-                <th className="p-2 text-left">Design Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(u => (
-                (u.designs && u.designs.length > 0) ? (
-                  u.designs.map((d: any, i: number) => (
-                    <tr key={`${u.id}-${d.id}`} className="border-t">
-                      {i === 0 && (
-                        <td className="p-2" rowSpan={u.designs.length}>{u.id}</td>
-                      )}
-                      {i === 0 && (
-                        <td className="p-2" rowSpan={u.designs.length}>{u.username}</td>
-                      )}
-                      {i === 0 && (
-                        <td className="p-2" rowSpan={u.designs.length}>{u.email}</td>
-                      )}
-                      {i === 0 && (
-                        <td className="p-2" rowSpan={u.designs.length}>{(u.first_name||'') + ' ' + (u.last_name||'')}</td>
-                      )}
-                      {i === 0 && (
-                        <td className="p-2" rowSpan={u.designs.length}>{u.country}</td>
-                      )}
-                      {i === 0 && (
-                        <td className="p-2" rowSpan={u.designs.length}>{u.phone}</td>
-                      )}
-                      <td className="p-2">{d.id}</td>
-                      <td className="p-2">{d.input_text?.slice(0,80)}</td>
-                      <td className="p-2">{new Date(d.timestamp).toLocaleString()}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr key={`u-${u.id}`} className="border-t">
-                    <td className="p-2">{u.id}</td>
-                    <td className="p-2">{u.username}</td>
-                    <td className="p-2">{u.email}</td>
-                    <td className="p-2">{(u.first_name||'') + ' ' + (u.last_name||'')}</td>
-                    <td className="p-2">{u.country}</td>
-                    <td className="p-2">{u.phone}</td>
-                    <td className="p-2">-</td>
-                    <td className="p-2">-</td>
-                    <td className="p-2">-</td>
-                  </tr>
-                )
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }

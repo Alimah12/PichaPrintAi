@@ -32,8 +32,8 @@ export default function LoginPage() {
       const isAdmin = await checkAdminAccess(token);
       console.debug('[login] isAdmin result', isAdmin);
       if (isAdmin) {
-        console.debug('[login] redirecting to /admin/analytics');
-        router.push('/admin/analytics');
+        console.debug('[login] redirecting to /admin');
+        router.push('/admin');
       } else {
         console.debug('[login] redirecting to /demo');
         router.push('/demo');
