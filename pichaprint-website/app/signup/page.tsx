@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signup } from '../../src/lib/api';
 import { setToken } from '../../src/lib/auth';
+import { setAdminToken, checkAdminAccess } from '../../src/lib/adminAuth';
 
 function PasswordChecks({ pw }: { pw: string }) {
   const checks = {
@@ -70,6 +71,7 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
+      console.debug('[signup] submit', { email });
       const payload = {
         username,
         first_name: firstName || null,
@@ -81,9 +83,22 @@ export default function SignupPage() {
       };
 
       const data = await signup(payload as any);
-      setToken(data.access_token);
-      // Redirect to production demo route
-      window.location.href = 'https://picha-print-ai.vercel.app/demo';
+      console.debug('[signup] signup response', data);
+      const token = data.access_token;
+      console.debug('[signup] storing tokens');
+      setToken(token);
+      setAdminToken(token);
+
+      // Check if user is admin
+      const isAdmin = await checkAdminAccess(token);
+      console.debug('[signup] isAdmin result', isAdmin);
+      if (isAdmin) {
+        console.debug('[signup] redirecting to /admin/analytics');
+        router.push('/admin/analytics');
+      } else {
+        console.debug('[signup] redirecting to /demo');
+        router.push('/demo');
+      }
     } catch (err: any) {
       setError(err?.message || 'Signup failed');
     } finally {

@@ -1,22 +1,22 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-
-// Simple token check function - adjust path as needed
-const getToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
-  }
-  return null;
-};
+import { getToken } from '../../src/lib/auth';
+import { getAdminToken } from '../../src/lib/adminAuth';
 
 export default function Hero() {
   const router = useRouter();
 
   const handleDemoClick = () => {
     const token = getToken();
+    const adminToken = getAdminToken();
     if (token) {
-      router.push('/demo');
+      // If they have an admin token, send to analytics
+      if (adminToken) {
+        router.push('/admin/analytics');
+      } else {
+        router.push('/demo');
+      }
     } else {
       router.push('/login');
     }

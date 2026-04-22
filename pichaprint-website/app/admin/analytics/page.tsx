@@ -1,72 +1,54 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { adminAnalytics, adminLogin } from '../../../src/lib/api';
-import { getAdminToken, setAdminToken, clearAdminToken } from '../../../src/lib/adminAuth';
+import { adminAnalytics } from '../../../src/lib/api';
+import { getAdminToken } from '../../../src/lib/adminAuth';
 
 export default function AnalyticsPage() {
-  const [adminUser, setAdminUser] = useState('');
-  const [adminPass, setAdminPass] = useState('');
-  const [adminToken, setAdminTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    const autoFetchAdminData = async () => {
+    console.debug('[analytics] page mounted, checking for admin token');
+    const fetchAdminData = async () => {
       setLoading(true);
       setError(null);
       try {
         const token = getAdminToken();
-        if (token) {
-          setAdminTokenState(token);
-          const res = await adminAnalytics(token);
-          setData(res);
+        console.debug('[analytics] retrieved admin token', { present: !!token, attempt: retryCount + 1 });
+        
+        if (!token) {
+          console.warn('[analytics] No authentication token found - this is the analytics page, token should be present');
+          // If token is missing on first attempt, wait a moment and retry once (in case of race condition)
+          if (retryCount < 1) {
+            console.debug('[analytics] retrying token check after delay');
+            setRetryCount(r => r + 1);
+            setTimeout(() => {
+              fetchAdminData();
+            }, 500);
+            return;
+          }
+          setError('No authentication token found. Please log in again.');
+          setLoading(false);
+          return;
         }
+        
+        console.debug('[analytics] calling adminAnalytics');
+        const res = await adminAnalytics(token);
+        console.debug('[analytics] adminAnalytics returned', Array.isArray(res) ? res.length : undefined, 'users');
+        setData(res);
       } catch (err: any) {
-        setError(err?.message || 'Failed to auto-load admin data');
+        console.error('[analytics] fetchAdminData error', err);
+        setError(err?.message || 'Failed to load admin data');
       } finally {
         setLoading(false);
       }
     };
 
-    autoFetchAdminData();
-  }, []);
-
-  const fetchData = async (token?: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await adminAnalytics(token);
-      setData(res);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdminLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await adminLogin(adminUser, adminPass);
-      const token = res.access_token;
-      setAdminToken(token);
-      setAdminTokenState(token);
-      await fetchData(token);
-    } catch (err: any) {
-      setError(err?.message || 'Admin login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdminLogout = () => {
-    clearAdminToken();
-    setAdminTokenState(null);
-    setData(null);
-  };
+    fetchAdminData();
+  }, [retryCount]);
 
   const exportCSV = () => {
     if (!data) return;
@@ -96,22 +78,12 @@ export default function AnalyticsPage() {
     <div className="p-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Admin Analytics (Users & Designs)</h1>
       <div className="mb-4 flex gap-2 items-center">
-        {!adminToken ? (
-          <>
-            <input value={adminUser} onChange={e => setAdminUser(e.target.value)} placeholder="Admin username" className="p-2 border rounded" />
-            <input type="password" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="Password" className="p-2 border rounded" />
-            <button onClick={handleAdminLogin} disabled={loading || !adminUser || !adminPass} className="px-3 py-2 bg-emerald-600 text-white rounded">{loading ? 'Loading...' : 'Login'}</button>
-          </>
-        ) : (
-          <>
-            <div className="text-sm text-gray-600">Signed in as admin</div>
-            <button onClick={handleAdminLogout} className="px-3 py-2 bg-rose-500 text-white rounded">Logout</button>
-            {data && <button onClick={exportCSV} className="px-3 py-2 bg-slate-700 text-white rounded">Export CSV</button>}
-          </>
-        )}
+        {data && <button onClick={exportCSV} className="px-3 py-2 bg-slate-700 text-white rounded">Export CSV</button>}
       </div>
 
       {error && <div className="text-red-500 mb-4">{error}</div>}
+
+      {loading && <div className="text-gray-500 mb-4">Loading...</div>}
 
       {data && (
         <div className="overflow-auto border rounded">

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, me } from '../../src/lib/api';
 import { setToken } from '../../src/lib/auth';
-import { checkAdminAccess } from '../../src/lib/adminAuth';
+import { setAdminToken, checkAdminAccess } from '../../src/lib/adminAuth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,16 +20,23 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      console.debug('[login] submit', { email });
       const data = await login(email, password);
+      console.debug('[login] login response', data);
       const token = data.access_token;
+      console.debug('[login] storing tokens');
       setToken(token);
+      setAdminToken(token);
 
-      // Centralized redirection logic
+      // Ensure admin check is robust
       const isAdmin = await checkAdminAccess(token);
+      console.debug('[login] isAdmin result', isAdmin);
       if (isAdmin) {
-        window.location.href = 'https://picha-print-ai.vercel.app/admin/analytics';
+        console.debug('[login] redirecting to /admin/analytics');
+        router.push('/admin/analytics');
       } else {
-        window.location.href = 'https://picha-print-ai.vercel.app/demo';
+        console.debug('[login] redirecting to /demo');
+        router.push('/demo');
       }
     } catch (err: any) {
       setError(err.message || 'Login failed');

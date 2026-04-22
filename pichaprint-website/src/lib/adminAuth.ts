@@ -3,16 +3,24 @@ import { me, adminAnalytics } from './api';
 const ADMIN_TOKEN_KEY = 'pichaprint_admin_token';
 
 export function setAdminToken(token: string) {
-  if (typeof window !== 'undefined') localStorage.setItem(ADMIN_TOKEN_KEY, token);
+  if (typeof window !== 'undefined') {
+    console.debug('[adminAuth] setAdminToken storing admin token');
+    localStorage.setItem(ADMIN_TOKEN_KEY, token);
+  }
 }
 
 export function getAdminToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(ADMIN_TOKEN_KEY);
+  const t = localStorage.getItem(ADMIN_TOKEN_KEY);
+  console.debug('[adminAuth] getAdminToken', { present: !!t });
+  return t;
 }
 
 export function clearAdminToken() {
-  if (typeof window !== 'undefined') localStorage.removeItem(ADMIN_TOKEN_KEY);
+  if (typeof window !== 'undefined') {
+    console.debug('[adminAuth] clearAdminToken');
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+  }
 }
 
 export async function checkAdminAccess(token: string): Promise<boolean> {

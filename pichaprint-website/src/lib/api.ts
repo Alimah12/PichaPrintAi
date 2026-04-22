@@ -76,19 +76,29 @@ export async function signup(payload: {
 }
 
 export async function login(email: string, password: string) {
+  console.debug('[api] login request', { email });
   const res = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
   });
   if (!res.ok) throw new Error('Login failed');
-  return res.json();
+  const json = await res.json();
+  console.debug('[api] login response', json);
+  return json;
 }
 
 export async function me(token: string) {
+  console.debug('[api] me request', { token: token ? 'present' : 'missing' });
   const res = await fetch(`${API_URL}/me`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) throw new Error('Auth failed');
-  return res.json();
+  if (!res.ok) {
+    const txt = await res.text();
+    console.warn('[api] me failed', txt);
+    throw new Error('Auth failed');
+  }
+  const json = await res.json();
+  console.debug('[api] me response', json);
+  return json;
 }
 
 export async function saveDesignToBackend(token: string, input_text: string, output_json: string) {
@@ -106,23 +116,35 @@ export async function listDesigns(token?: string, user_id?: number) {
   if (typeof user_id !== 'undefined' && user_id !== null) url.searchParams.set('user_id', String(user_id));
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  console.debug('[api] listDesigns request', { url: url.toString(), hasToken: !!token, user_id });
   const res = await fetch(url.toString(), { headers });
-  if (!res.ok) throw new Error('Failed to list designs');
-  return res.json();
+  if (!res.ok) {
+    const txt = await res.text();
+    console.warn('[api] listDesigns failed', txt);
+    throw new Error('Failed to list designs');
+  }
+  const json = await res.json();
+  console.debug('[api] listDesigns response length', Array.isArray(json) ? json.length : undefined);
+  return json;
 }
 
 export async function adminAnalytics(adminToken?: string) {
   const headers: Record<string, string> = {};
   if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
+  console.debug('[api] adminAnalytics request', { hasToken: !!adminToken });
   const res = await fetch(`${API_URL}/admin/analytics`, { headers });
   if (!res.ok) {
     const txt = await res.text();
+    console.warn('[api] adminAnalytics failed', txt);
     throw new Error(txt || 'Failed to fetch analytics');
   }
-  return res.json();
+  const json = await res.json();
+  console.debug('[api] adminAnalytics response users', Array.isArray(json) ? json.length : undefined);
+  return json;
 }
 
 export async function adminLogin(username: string, password: string) {
+  console.debug('[api] adminLogin request', { username });
   const res = await fetch(`${API_URL}/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -132,5 +154,7 @@ export async function adminLogin(username: string, password: string) {
     const txt = await res.text();
     throw new Error(txt || 'Admin login failed');
   }
-  return res.json();
+  const json = await res.json();
+  console.debug('[api] adminLogin response', json);
+  return json;
 }

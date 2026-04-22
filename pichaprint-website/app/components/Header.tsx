@@ -10,17 +10,36 @@ export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Re-check auth status whenever pathname changes (in case token was stored after initial mount)
   useEffect(() => {
-    setAuthed(!!getToken());
-  }, []);
+    const isAdmin = pathname.startsWith('/admin');
+    if (isAdmin) {
+      // Skip ALL redirect logic for admin routes - they handle their own auth
+      console.debug('[Header] admin route detected, skipping redirect logic');
+      return;
+    }
+    
+    // For non-admin routes: update authed state based on current token
+    const token = getToken();
+    setAuthed(!!token);
+    console.debug('[Header] checking auth for route', { pathname, authed: !!token, isAdmin });
+  }, [pathname]);
 
   useEffect(() => {
-    if (authed && pathname !== '/demo') {
+    // Skip redirect logic entirely for admin routes
+    if (pathname.startsWith('/admin')) {
+      return;
+    }
+
+    // Only redirect authenticated users to /demo when they are on public entry pages
+    if (authed && (pathname === '/' || pathname === '/login' || pathname === '/signup')) {
+      console.debug('[Header] redirecting authed user from entry page to /demo');
       router.push('/demo');
       return;
     }
 
     if (!authed && pathname === '/demo') {
+      console.debug('[Header] redirecting unauthed user from /demo to /');
       router.push('/');
     }
   }, [authed, pathname, router]);
