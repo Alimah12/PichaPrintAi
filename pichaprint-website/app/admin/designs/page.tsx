@@ -15,7 +15,7 @@ export default function DesignsPage() {
       setError(null);
       try {
         const token = getAdminToken();
-        const users = await adminAnalytics(token);
+        const users = await adminAnalytics(token || undefined);
         const allDesigns: any[] = [];
         (users || []).forEach((u: any) => {
           (u.designs || []).forEach((d: any) => {
