@@ -93,8 +93,8 @@ export default function SignupPage() {
       const isAdmin = await checkAdminAccess(token);
       console.debug('[signup] isAdmin result', isAdmin);
       if (isAdmin) {
-        console.debug('[signup] redirecting to /admin/analytics');
-        router.push('/admin/analytics');
+        console.debug('[signup] redirecting to /admin');
+        router.push('/admin');
       } else {
         console.debug('[signup] redirecting to /demo');
         router.push('/demo');

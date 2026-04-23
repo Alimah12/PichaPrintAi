@@ -2,24 +2,32 @@
 
 import { useRouter } from 'next/navigation';
 import { getToken } from '../../src/lib/auth';
-import { getAdminToken } from '../../src/lib/adminAuth';
+import { getAdminToken, checkAdminAccess } from '../../src/lib/adminAuth';
 
 export default function Hero() {
   const router = useRouter();
 
-  const handleDemoClick = () => {
+  const handleDemoClick = async () => {
     const token = getToken();
     const adminToken = getAdminToken();
-    if (token) {
-      // If they have an admin token, send to analytics
-      if (adminToken) {
-        router.push('/admin/analytics');
-      } else {
-        router.push('/demo');
-      }
-    } else {
+    if (!token) {
       router.push('/login');
+      return;
     }
+
+    if (adminToken) {
+      try {
+        const isAdmin = await checkAdminAccess(adminToken);
+        if (isAdmin) {
+          router.push('/admin');
+          return;
+        }
+      } catch (e) {
+        console.warn('[hero] admin check failed', e);
+      }
+    }
+
+    router.push('/demo');
   };
 
   return (
